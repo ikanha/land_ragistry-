@@ -1,0 +1,2 @@
+/home/ubuntu/land-registry-fabric/config/ccp-Org1.yaml
+/home/ubuntu/land-registry-fabric/config/ccp-Org2.yaml

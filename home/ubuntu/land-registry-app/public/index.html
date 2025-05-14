@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Land Registry System</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
+        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1, h2 { color: #333; text-align: center; }
+        .form-section { margin-bottom: 30px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background-color: #f9f9f9; }
+        .form-section h3 { margin-top: 0; color: #555; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], input[type="number"], select, textarea {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button { 
+            background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; margin-right: 10px; }
+        button:hover { background-color: #0056b3; }
+        #responseArea { margin-top: 20px; padding: 15px; border: 1px solid #eee; border-radius: 4px; background-color: #e9ecef; min-height: 50px; white-space: pre-wrap; word-wrap: break-word; }
+        .hidden { display: none; }
+        .user-role-selector { margin-bottom: 20px; text-align: center; }
+        .user-role-selector label { margin-right: 10px; }
+        .user-role-selector select { padding: 10px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Land Registry Management System</h1>
+
+        <div class="user-role-selector">
+            <label for="userRole">Select Your Role (Simulated):</label>
+            <select id="userRole" onchange="toggleForms()">
+                <option value="">-- Select Role --</option>
+                <option value="Org1MSP">Government Department (Org1)</option>
+                <option value="Org2MSP">Land Registry Office (Org2)</option>
+            </select>
+        </div>
+
+        <!-- Org1: Government Department Forms -->
+        <div id="org1Forms" class="form-section hidden">
+            <h3>Government Department Actions (Org1MSP)</h3>
+            
+            <h4>Register Land</h4>
+            <form id="registerLandForm">
+                <label for="rl_landID">Land ID:</label>
+                <input type="text" id="rl_landID" name="landID" required><br>
+                <label for="rl_owner">Owner:</label>
+                <input type="text" id="rl_owner" name="owner" required><br>
+                <label for="rl_area">Area:</label>
+                <input type="text" id="rl_area" name="area" required><br>
+                <label for="rl_location">Location:</label>
+                <input type="text" id="rl_location" name="location" required><br>
+                <label for="rl_marketValue">Market Value:</label>
+                <input type="number" id="rl_marketValue" name="marketValue" required><br>
+                <label for="rl_documentHash">Document Hash:</label>
+                <input type="text" id="rl_documentHash" name="documentHash" required><br>
+                <button type="submit">Register Land</button>
+            </form>
+
+            <h4>Initiate Transfer</h4>
+            <form id="initiateTransferForm">
+                <label for="it_landID">Land ID:</label>
+                <input type="text" id="it_landID" name="landID" required><br>
+                <label for="it_newOwner">New Owner:</label>
+                <input type="text" id="it_newOwner" name="newOwner" required><br>
+                <button type="submit">Initiate Transfer</button>
+            </form>
+        </div>
+
+        <!-- Org2: Land Registry Office Forms -->
+        <div id="org2Forms" class="form-section hidden">
+            <h3>Land Registry Office Actions (Org2MSP)</h3>
+
+            <h4>Approve Transfer</h4>
+            <form id="approveTransferForm">
+                <label for="at_landID">Land ID:</label>
+                <input type="text" id="at_landID" name="landID" required><br>
+                <button type="submit">Approve Transfer</button>
+            </form>
+
+            <h4>Reject Transfer</h4>
+            <form id="rejectTransferForm">
+                <label for="rt_landID">Land ID:</label>
+                <input type="text" id="rt_landID" name="landID" required><br>
+                <label for="rt_reason">Reason for Rejection:</label>
+                <input type="text" id="rt_reason" name="reason" required><br>
+                <button type="submit">Reject Transfer</button>
+            </form>
+        </div>
+
+        <!-- Common Forms (Both Orgs) -->
+        <div id="commonForms" class="form-section hidden">
+            <h3>Common Actions</h3>
+            <h4>Query Land</h4>
+            <form id="queryLandForm">
+                <label for="ql_landID">Land ID:</label>
+                <input type="text" id="ql_landID" name="landID" required><br>
+                <button type="submit">Query Land</button>
+            </form>
+
+            <h4>Get Land History</h4>
+            <form id="getLandHistoryForm">
+                <label for="glh_landID">Land ID:</label>
+                <input type="text" id="glh_landID" name="landID" required><br>
+                <button type="submit">Get Land History</button>
+            </form>
+
+            <h4>Verify Document Hash</h4>
+            <form id="verifyDocumentForm">
+                <label for="vd_landID">Land ID:</label>
+                <input type="text" id="vd_landID" name="landID" required><br>
+                <label for="vd_hashToVerify">Hash to Verify:</label>
+                <input type="text" id="vd_hashToVerify" name="hashToVerify" required><br>
+                <button type="submit">Verify Document</button>
+            </form>
+        </div>
+
+        <h2>Response</h2>
+        <div id="responseArea">Awaiting action...</div>
+    </div>
+
+    <script>
+        const API_BASE_URL = "http://localhost:3000/api"; // Assuming server runs on port 3000
+        let selectedOrgMSP = "";
+
+        function toggleForms() {
+            selectedOrgMSP = document.getElementById("userRole").value;
+            document.getElementById("org1Forms").classList.add("hidden");
+            document.getElementById("org2Forms").classList.add("hidden");
+            document.getElementById("commonForms").classList.add("hidden");
+
+            if (selectedOrgMSP === "Org1MSP") {
+                document.getElementById("org1Forms").classList.remove("hidden");
+                document.getElementById("commonForms").classList.remove("hidden");
+            } else if (selectedOrgMSP === "Org2MSP") {
+                document.getElementById("org2Forms").classList.remove("hidden");
+                document.getElementById("commonForms").classList.remove("hidden");
+            }
+        }
+
+        async function handleFormSubmit(event, endpoint, method = "POST") {
+            event.preventDefault();
+            if (!selectedOrgMSP) {
+                alert("Please select your role first.");
+                return;
+            }
+
+            const formData = new FormData(event.target);
+            const data = {};
+            const args = [];
+
+            // Specific logic for argument structuring based on form
+            if (event.target.id === "registerLandForm") {
+                args.push(formData.get("landID"));
+                args.push(formData.get("owner"));
+                args.push(formData.get("area"));
+                args.push(formData.get("location"));
+                args.push(formData.get("marketValue"));
+                args.push(formData.get("documentHash"));
+            } else if (event.target.id === "initiateTransferForm") {
+                args.push(formData.get("landID"));
+                args.push(formData.get("newOwner"));
+            } else if (event.target.id === "approveTransferForm") {
+                args.push(formData.get("landID"));
+            } else if (event.target.id === "rejectTransferForm") {
+                args.push(formData.get("landID"));
+                args.push(formData.get("reason"));
+            } else if (event.target.id === "queryLandForm" || event.target.id === "getLandHistoryForm") {
+                args.push(formData.get("landID"));
+            } else if (event.target.id === "verifyDocumentForm") {
+                args.push(formData.get("landID"));
+                args.push(formData.get("hashToVerify"));
+            }
+            
+            const body = { args };
+            const responseArea = document.getElementById("responseArea");
+            responseArea.textContent = "Processing...";
+
+            try {
+                let response;
+                if (method === "POST") {
+                    response = await fetch(`${API_BASE_URL}/${endpoint.replace(":orgMSP", selectedOrgMSP)}`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(body)
+                    });
+                } else { // GET for queries
+                    const queryString = args.length > 0 ? `?args=${encodeURIComponent(JSON.stringify(args))}` : "";
+                    response = await fetch(`${API_BASE_URL}/${endpoint.replace(":orgMSP", selectedOrgMSP)}${queryString}`, {
+                        method: "GET"
+                    });
+                }
+
+                const result = await response.json();
+                responseArea.textContent = JSON.stringify(result, null, 2);
+                if (response.ok && result.success) {
+                    event.target.reset(); // Clear form on success
+                }
+            } catch (error) {
+                console.error("Error:", error);
+                responseArea.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        // Attach event listeners
+        document.getElementById("registerLandForm").addEventListener("submit", (e) => handleFormSubmit(e, "invoke/:orgMSP/registerLand"));
+        document.getElementById("initiateTransferForm").addEventListener("submit", (e) => handleFormSubmit(e, "invoke/:orgMSP/initiateTransfer"));
+        document.getElementById("approveTransferForm").addEventListener("submit", (e) => handleFormSubmit(e, "invoke/:orgMSP/approveTransfer"));
+        document.getElementById("rejectTransferForm").addEventListener("submit", (e) => handleFormSubmit(e, "invoke/:orgMSP/rejectTransfer"));
+        
+        document.getElementById("queryLandForm").addEventListener("submit", (e) => handleFormSubmit(e, "query/:orgMSP/queryLand", "GET"));
+        document.getElementById("getLandHistoryForm").addEventListener("submit", (e) => handleFormSubmit(e, "query/:orgMSP/getLandHistory", "GET"));
+        document.getElementById("verifyDocumentForm").addEventListener("submit", (e) => handleFormSubmit(e, "query/:orgMSP/verifyDocument", "GET"));
+
+        // Initial call to set form visibility based on default role selection (none)
+        toggleForms();
+    </script>
+</body>
+</html>
+
